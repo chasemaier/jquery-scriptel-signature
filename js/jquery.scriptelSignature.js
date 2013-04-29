@@ -380,7 +380,9 @@
                     }
                     
                     data.canvas = $(canvas).get(0);
-                    $(this).prepend(data.canvas);
+                    if (!$(this).is('canvas')) {
+                        $(this).prepend(data.canvas);
+                    }
                     
                     data.ctx = data.canvas.getContext("2d");
                 }

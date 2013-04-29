@@ -352,7 +352,13 @@
                     data.height = $(this).height();
                     var canvas,
                         canvasid;
-                    if ($(this).children('canvas').length > 0) {
+                    if ($(this).is('canvas')) {
+                        canvas = $(this);
+                        if (!$(canvas).attr('id')) {
+                            $(canvas).attr('id', 'signature-'+(new Date()).getTime()+'-canvas')
+                        }
+                        canvasid = $(canvas).attr('id');
+                    } else if ($(this).children('canvas').length > 0) {
                         canvas = $(this).children('canvas').get(0);
                         if (!$(canvas).attr('id')) {
                             $(canvas).attr('id', $(this).attr('id')+'-canvas')

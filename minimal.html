@@ -18,7 +18,7 @@
                 $("#sig-canvas").scriptelSignature();
                 //Draw Signature From String In Input
                 $("#draw-sig").click(function() {
-                    $("#sig-canvas").scriptelSignature("showScriptel", $("#signature").val());
+                    $("#sig-canvas").scriptelSignature("process", $("#signature").val());
                     return false;
                 });
                 //Clear Signature Canvas

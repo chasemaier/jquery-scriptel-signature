@@ -437,7 +437,7 @@
                 $(this).scriptelSignature('draw', pointArray);
             });
         },
-        showScriptel: function(inputString) {
+        process: function(inputString) {
             return this.each(function() {
                 $(this).scriptelSignature('show', $(this).scriptelSignature('convertSignatureStringToArray', inputString));
             });

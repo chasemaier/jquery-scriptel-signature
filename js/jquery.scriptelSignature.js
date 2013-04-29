@@ -369,11 +369,10 @@
                         canvasid = $(this).attr('id')+'-canvas';
                     }
                     
-                    $(canvas).attr('width', data.width)
-                        .attr('height', data.height)
-                        .attr('id', canvasid)
-                        .attr('cursor', 'pointer')
-                        .attr('style', 'position:absolute; top:0; left:0;');
+                    $(canvas).attr('width', data.width).attr('height', data.height).attr('id', canvasid);
+                    if (!$(this).is('canvas')) {
+                        $(canvas).attr('cursor', 'pointer').attr('style', 'position:absolute; top:0; left:0;');
+                    }
                     
                     if (typeof G_vmlCanvasManager != 'undefined') {
                         canvas = G_vmlCanvasManager.initElement(canvas);

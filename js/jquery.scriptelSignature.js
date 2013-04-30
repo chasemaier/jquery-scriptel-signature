@@ -254,19 +254,14 @@
                 //Caps Lock Off Only
                 //pattern = /^\}(?:SCRIPTEL|scriptel)\ (?:[^\ ]+\ ){3}(?:(?:[\x40-\x4c\x23-\x26\x28-\x2a\x21\x5e][\x4d-\x5a\x22\x3c\x5f\x3a\x3e\x3f\x2b\x7b\x7c]|[\x4d-\x5a\x22\x3c\x5f\x3a\x3e\x3f\x2b\x7b\x7c][\x40-\x4c\x23-\x26\x28-\x2a\x21\x5e])(?:[\x30-\x39\x61-\x6c][\x6d-\x7a\x27\x2c-\x2f\x3b\x3d\x5b\x5c]|[\x6d-\x7a\x27\x2c-\x2f\x3b\x3d\x5b\x5c][\x30-\x39\x61-\x6c])|\x20)*\]$/;
             
-            if (pattern.test(inputString)) {
-                console.log("Complete signature data match.");
-            } else {
-                console.log("NO MATCH: Do not expect good results.");
-                return false;
+            if (!pattern.test(inputString)) {
+                return false
             }
             
             if (/^\}SCRIPTEL/.test(inputString.substring(0, 9))) {
-                decoder = $(this).scriptelSignature('buildLookupTable', true);
-                console.log("beginning verified: proceeding to decode");
+                decoder = $(this).scriptelSignature('buildLookupTable', true); //Caps lock off
             } else if (/^\}scriptel/.test(inputString.substring(0, 9))) {
-                console.log("beginning verified with caps lock: proceeding to decode");
-                decoder = $(this).scriptelSignature('buildLookupTable', false);
+                decoder = $(this).scriptelSignature('buildLookupTable', false); //Caps lock on
             } else {
                 return false;
             }
@@ -283,15 +278,18 @@
                 }
                 
                 while ((typeof decoder.msx[inputString.charCodeAt(i)] === 'undefined') && (typeof decoder.lsx[inputString.charCodeAt(i)] === 'undefined') && i < inputString.length-1) {
-                    console.log("missing lsx or msx at " + i + ", value: " + inputString.charCodeAt(i) + ", char: " + inputString.charAt(i));
+                    return false; //Issue with MS-X or LS-X
+                    /*
                     if(inputString.charAt(i) == " ") {
                         returnArr.push({});
                     }
                     i++;
+                    */
                 }
                 
                 if (i+3 > inputString.length-1) {
-                    continue;
+                    return false; //Issue with number of characters
+                    //continue;
                 }
                 
                 if ((typeof decoder.msx[inputString.charCodeAt(i)] !== 'undefined') && (typeof decoder.lsx[inputString.charCodeAt(i+1)] !== 'undefined')) {
@@ -301,12 +299,12 @@
                     msx = decoder.msx[inputString.charCodeAt(i+1)];
                     lsx = decoder.lsx[inputString.charCodeAt(i)];
                 } else {
-                    console.log("unexpected error #1 at " + i + " ("+inputString.charCodeAt(i)+" = "+inputString[i]+", "+inputString.charCodeAt(i+1)+" = "+inputString[i+1]+")");
+                    return false;
                 }
                 
                 if ((typeof decoder.msy[inputString.charCodeAt(i+2)] === 'undefined') && (typeof decoder.lsy[inputString.charCodeAt(i+2)] === 'undefined')) {
-                    console.log("missing lsy or msy at " + (i+2) + ", value: " + inputString.charCodeAt(i+2) + ", char: " + inputString.charAt(i+2));
-                    continue;
+                    return false; //Issue with MS-Y or LS-Y
+                    //continue;
                 }
                 
                 if ((typeof decoder.msy[inputString.charCodeAt(i+2)] !== 'undefined') && (typeof decoder.lsy[inputString.charCodeAt(i+3)] !== 'undefined')) {
@@ -316,23 +314,22 @@
                     msy = decoder.msy[inputString.charCodeAt(i+3)];
                     lsy = decoder.lsy[inputString.charCodeAt(i+2)];
                 } else {
-                    console.log("unexpected error #2 at " + i);
+                    return false;
                 }
                 
                 returnArr.push({
-                    x: (msx*23+lsx)+1,  //1 - 500
-                    y: (msy*23+lsy)+1   //1 - 500
+                    x: ((msx*23)+lsx)+1,  //1 - 500
+                    y: ((msy*23)+lsy)+1   //1 - 500
                 });
             }
 
             if (inputString.charAt(inputString.length-1) != ']') {
-                console.log("ending NOT verified");
-            } else {
-                console.log("ending verified: finishing");
+                return false;
             }
             return returnArr;
         },
         init: function(options) {
+            $(this).scriptelSignature('watchForSignatureKeySequence', true);
             return this.each(function() {
                 var data = $(this).data('scriptelSignature');
                 if (!data) {
@@ -347,6 +344,7 @@
                         width: 0,
                         height: 0
                     });
+                    $(this).addClass('scriptelSignature-active');
                     data = $(this).data('scriptelSignature');
                     data.width = $(this).width();
                     data.height = $(this).height();
@@ -371,7 +369,7 @@
                     
                     $(canvas).attr('width', data.width).attr('height', data.height).attr('id', canvasid);
                     if (!$(this).is('canvas')) {
-                        $(canvas).attr('cursor', 'pointer').attr('style', 'position:absolute; top:0; left:0;');
+                        $(canvas).attr('cursor', 'pointer');
                     }
                     
                     if (typeof G_vmlCanvasManager != 'undefined') {
@@ -443,14 +441,67 @@
             });
         },
         destroy: function() {
+            $(this).scriptelSignature('watchForSignatureKeySequence', false);
             return this.each(function() {
                 var data = $(this).data('scriptelSignature');
-                $(window).unbind('.scriptelSignature');
+                $('*').unbind('.scriptelSignature');
                 data.ctx.remove();
                 data.stroke.remove();
                 data.canvas.remove();
                 $(this).removeData('scriptelSignature');
+                $(this).removeClass('scriptelSignature-active');
             });
+        },
+        watchForSignatureKeySequence: function(active) {
+            if (active) {
+                //Handle each kepress while the plugin is active
+                $(document).on('keypress.scriptelSignature', function(event) {
+                    var finishSignatureCapture = function() {
+                        $(document.body).removeData('scriptelSignature-signatureString');
+                        $(document.body).removeData('scriptelSignature-captureKeys');
+                        var gritterId = $(document.body).data('scriptelSignature-gritterId');
+                        if (gritterId) {
+                            $(document.body).removeData('scriptelSignature-gritterId');
+                            $.gritter.remove(gritterId);
+                        }
+                    }
+                    //Start Character
+                    if (event.which == 125) {
+                        if ($(document.body).data('scriptelSignature-signatureString')) {
+                            //Two start characters in one signature. Bail out.
+                            finishSignatureCapture();
+                        } else {
+                            $(document.body).data('scriptelSignature-captureKeys', (new Date()).getTime());
+                            $(document.body).data('scriptelSignature-signatureString', '');
+                            //If gritter plougin is available, display a message and allow the user to cancel the capture.
+                            if ($.gritter) {
+                                $(document.body).data('scriptelSignature-gritterId', $.gritter.add({
+                                    title: 'Capturing Signature',
+                                    text: 'A signature is currently being captured. Please avoid typing.',
+                                    sticky: true,
+                                    before_close: function(e, manual_close) {
+                                        finishSignatureCapture();
+                                    }
+                                }));
+                            }
+                            event.preventDefault();
+                        }
+                    }
+                    //Complete Character
+                    if (event.which == 93) {
+                        $('.scriptelSignature-active').scriptelSignature('process', $(document.body).data('scriptelSignature-signatureString') + ']');
+                        finishSignatureCapture();
+                        event.preventDefault();
+                    }
+                    //If we are currently capturing a signature...
+                    if ($(document.body).data('scriptelSignature-captureKeys')) {
+                        $(document.body).data('scriptelSignature-signatureString', $(document.body).data('scriptelSignature-signatureString')+String.fromCharCode(event.which));
+                        event.preventDefault();
+                    }
+                });
+            } else {
+                $(document).off('keypress.scriptelSignature');
+            }
         }
     };
     

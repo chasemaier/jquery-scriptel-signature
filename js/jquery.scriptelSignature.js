@@ -334,7 +334,8 @@
         init: function(options) {
             $(this).scriptelSignature('watchForSignatureKeySequence', true);
             return this.each(function() {
-                var data = $(this).data('scriptelSignature');
+                var data = $(this).data('scriptelSignature'),
+                    canvas;
                 if (!data) {
                     $(this).data('scriptelSignature', {
                         canvas: undefined,
@@ -344,36 +345,23 @@
                         lastX: 0,
                         plastY: 0,
                         stroke: [],
-                        width: 0,
-                        height: 0
+                        width: $(this).width() || $(this).getHiddenDimensions().width,
+                        height: $(this).height() || $(this).getHiddenDimensions().height
                     });
                     $(this).addClass('scriptelSignature-active');
                     data = $(this).data('scriptelSignature');
-                    data.width = $(this).width();
-                    data.height = $(this).height();
-                    var canvas,
-                        canvasid;
                     if ($(this).is('canvas')) {
                         canvas = $(this);
-                        if (!$(canvas).attr('id')) {
-                            $(canvas).attr('id', 'signature-'+(new Date()).getTime()+'-canvas')
-                        }
-                        canvasid = $(canvas).attr('id');
                     } else if ($(this).children('canvas').length > 0) {
                         canvas = $(this).children('canvas').get(0);
-                        if (!$(canvas).attr('id')) {
-                            $(canvas).attr('id', $(this).attr('id')+'-canvas')
-                        }
-                        canvasid = $(canvas).attr('id');
+                        data.width = $(canvas).width() || $(canvas).getHiddenDimensions().width;
+                        data.height = $(canvas).height() || $(canvas).getHiddenDimensions().height;
                     } else {
                         canvas = document.createElement('canvas');
-                        canvasid = $(this).attr('id')+'-canvas';
                     }
                     
-                    $(canvas).attr('width', data.width).attr('height', data.height).attr('id', canvasid);
-                    if (!$(this).is('canvas')) {
-                        $(canvas).attr('cursor', 'pointer');
-                    }
+                    $(canvas).attr('width', data.width)
+                             .attr('height', data.height);
                     
                     if (typeof G_vmlCanvasManager != 'undefined') {
                         canvas = G_vmlCanvasManager.initElement(canvas);
@@ -456,54 +444,56 @@
             });
         },
         watchForSignatureKeySequence: function(active) {
+            $(document).off('keypress.scriptelSignature');
             if (active) {
                 //Handle each kepress while the plugin is active
                 $(document).on('keypress.scriptelSignature', function(event) {
-                    var finishSignatureCapture = function() {
-                        $(document.body).removeData('scriptelSignature-signatureString');
-                        $(document.body).removeData('scriptelSignature-captureKeys');
-                        var gritterId = $(document.body).data('scriptelSignature-gritterId');
-                        if (gritterId) {
-                            $(document.body).removeData('scriptelSignature-gritterId');
-                            $.gritter.remove(gritterId);
-                        }
-                    }
-                    //Start Character
-                    if (event.which == 125) {
-                        if ($(document.body).data('scriptelSignature-signatureString')) {
-                            //Two start characters in one signature. Bail out.
-                            finishSignatureCapture();
-                        } else {
-                            $(document.body).data('scriptelSignature-captureKeys', (new Date()).getTime());
-                            $(document.body).data('scriptelSignature-signatureString', '');
-                            //If gritter plougin is available, display a message and allow the user to cancel the capture.
-                            if ($.gritter) {
-                                $(document.body).data('scriptelSignature-gritterId', $.gritter.add({
-                                    title: 'Capturing Signature',
-                                    text: 'A signature is currently being captured. Please avoid typing.',
-                                    sticky: true,
-                                    before_close: function(e, manual_close) {
-                                        finishSignatureCapture();
-                                    }
-                                }));
+                    if ($('.scriptelSignature-active:visible').length > 0) {
+                        var finishSignatureCapture = function() {
+                            $(document.body).removeData('scriptelSignature-signatureString');
+                            $(document.body).removeData('scriptelSignature-captureKeys');
+                            var gritterId = $(document.body).data('scriptelSignature-gritterId');
+                            if (gritterId) {
+                                $(document.body).removeData('scriptelSignature-gritterId');
+                                $.gritter.remove(gritterId);
                             }
+                        }
+                        //Start Character
+                        if (event.which == 125) {
+                            if ($(document.body).data('scriptelSignature-signatureString')) {
+                                //Two start characters in one signature. Bail out.
+                                finishSignatureCapture();
+                            } else {
+                                $(document.body).data('scriptelSignature-captureKeys', (new Date()).getTime());
+                                $(document.body).data('scriptelSignature-signatureString', '');
+                                //If gritter plougin is available, display a message and allow the user to cancel the capture.
+                                if ($.gritter) {
+                                    $(document.body).data('scriptelSignature-gritterId', $.gritter.add({
+                                        title: 'Capturing Signature',
+                                        text: 'A signature is currently being captured. Please avoid typing.',
+                                        sticky: true,
+                                        before_close: function(e, manual_close) {
+                                            finishSignatureCapture();
+                                        }
+                                    }));
+                                }
+                                event.preventDefault();
+                            }
+                        }
+                        //Complete Character
+                        if (event.which == 93) {
+                            $('.scriptelSignature-active').scriptelSignature('process', $(document.body).data('scriptelSignature-signatureString') + ']');
+                            finishSignatureCapture();
+                            event.preventDefault();
+                        }
+                        //If we are currently capturing a signature...
+                        if ($(document.body).data('scriptelSignature-captureKeys')) {
+                            $(document.body).focus();
+                            $(document.body).data('scriptelSignature-signatureString', $(document.body).data('scriptelSignature-signatureString')+String.fromCharCode(event.which));
                             event.preventDefault();
                         }
                     }
-                    //Complete Character
-                    if (event.which == 93) {
-                        $('.scriptelSignature-active').scriptelSignature('process', $(document.body).data('scriptelSignature-signatureString') + ']');
-                        finishSignatureCapture();
-                        event.preventDefault();
-                    }
-                    //If we are currently capturing a signature...
-                    if ($(document.body).data('scriptelSignature-captureKeys')) {
-                        $(document.body).data('scriptelSignature-signatureString', $(document.body).data('scriptelSignature-signatureString')+String.fromCharCode(event.which));
-                        event.preventDefault();
-                    }
                 });
-            } else {
-                $(document).off('keypress.scriptelSignature');
             }
         }
     };
@@ -517,4 +507,62 @@
             $.error('Method '+method+' does not exist for plugin');
         }
     };
+    
+    //Optional parameter includeMargin is used when calculating outer dimensions
+    $.fn.getHiddenDimensions = function(includeMargin) {
+        var $item = this,
+            props = { position: 'absolute', visibility: 'hidden', display: 'block' },
+            dim = { width:0, height:0, innerWidth: 0, innerHeight: 0,outerWidth: 0,outerHeight: 0 },
+            $hiddenParents = $item.parents().andSelf().not(':visible'),
+            includeMargin = (includeMargin == null)? false : includeMargin;
+        
+        var oldProps = [];
+        $hiddenParents.each(function() {
+            var old = {};
+            for ( var name in props ) {
+                old[ name ] = this.style[ name ];
+                this.style[ name ] = props[ name ];
+            }
+            oldProps.push(old);
+        });
+        
+        dim.width = $item.width();
+        dim.outerWidth = $item.outerWidth(includeMargin);
+        dim.innerWidth = $item.innerWidth();
+        dim.height = $item.height();
+        dim.innerHeight = $item.innerHeight();
+        dim.outerHeight = $item.outerHeight(includeMargin);
+        
+        $hiddenParents.each(function(i) {
+            var old = oldProps[i];
+            for ( var name in props ) {
+                this.style[ name ] = old[ name ];
+            }
+        });
+        
+        return dim;
+    }
+    
+    $.fn.isCanvasEmpty = function() {
+        var isAllEmpty = true;
+        this.each(function() {
+            var canvas;
+            if ($(this).is('canvas')) {
+                canvas = $(this);
+            } else if ($(this).children('canvas').length > 0) {
+                canvas = $(this).children('canvas').get(0);
+            }
+            if ($(canvas).is('canvas')) {
+                var canvas = $(canvas)[0],
+                    imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+                for (var i = 0; i < imgData.data.length; i++) {
+                    if (imgData.data[i]) {
+                        isAllEmpty = false;
+                        return false;
+                    }
+                }
+            }
+        });
+        return isAllEmpty;
+    }
 })(jQuery);

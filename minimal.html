@@ -10,14 +10,18 @@
         <!-- End Optional Gritter Integration -->
         <script src="js/jquery.scriptelSignature.js"></script>
         <style type="text/css">
+            h1 {padding: 0px; margin: 0px;}
+            a {float: right;}
             p {padding: 0px; margin: 0px;}
             hr {border-color: #000;}
         </style>
     </head>
     <body>
-        <input type="text" style="width: 100%;" placeholder="This input field can be used to test how keyboard character capture will impact inputs on the target page during signature capture." />
+        <a href="https://github.com/chasemaier/jquery-scriptel-signature">https://github.com/chasemaier/jquery-scriptel-signature</a>
+        <h1>jQuery Scriptel Signature Plugin</h1>
         <hr />
-        <input id="clear-sig" type="button" value="Clear"/><br />
+        <input id="clear-sig" type="button" value="Clear" style="width: 5%;"/>
+        <input type="text" style="width: 90%;" placeholder="This input field can be used to test how keyboard character capture will impact inputs on the target page during signature capture." />
         <hr />
         <p>Target a container with an existing canvas...</p>
         <div id='sig-wrapper' class="signature-plugin-target" style="width: 100%; height: 150px; border: 1px solid #F55;">

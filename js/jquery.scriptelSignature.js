@@ -1,3 +1,6 @@
+/**
+ * @see https://github.com/chasemaier/jquery-scriptel-signature
+ */
 (function($) {
     var methods = {
         /**
